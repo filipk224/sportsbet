@@ -96,44 +96,6 @@ class SportsbetSpider(scrapy.Spider):
             })
 
         ## Collect open bets
-        #base=response.xpath("//ul[starts-with(@class, 'upcomingEventsListDesktop')]")
-        # for date in response.xpath("//div[@data-automation-id='competition-event-group-title']"):
-        #     for card in date.xpath(".//parent::div/following-sibling::ul/li"):
-        #         participant=1
-        #         league=card.xpath(".//span[@data-automation-id='competition-name']/text()").get()
-        #         if league not in disallowed_leagues:
-        #             if card.xpath(".//div[@data-automation-id='multi-market-coupon-event']"):
-        #                 Participant1={'Name':card.xpath(".//div[@data-automation-id='participant-one']/text()").get(), 'Price': card.xpath(".//span[@data-automation-id'price-text'][1]/text()").get()}
-        #                 Participant2={'Name':card.xpath(".//div[@data-automation-id='participant-two']/text()").get(), 'Price': card.xpath(".//span[@data-automation-id'price-text'][2]/text()").get()}
-        #             else:    
-        #                 for contendor in card.xpath(".//div[contains(@class, 'outcomeDetails')]"):
-        #                     if contendor.xpath(".//span[contains(@data-automation-id, 'name')]/text()").get() == None:
-        #                         participant=1
-        #                         continue
-        #                     if participant==1:
-        #                         Participant1={'Name':contendor.xpath(".//span[contains(@data-automation-id, 'name')]/text()").get(), 'Price':contendor.xpath(".//div/div/span[@data-automation-id='price-text']/text()").get()}
-        #                         participant+=1
-        #                     elif participant==2:
-        #                         Participant2={'Name':contendor.xpath(".//span[contains(@data-automation-id, 'name')]/text()").get(), 'Price':contendor.xpath(".//div/div/span[@data-automation-id='price-text']/text()").get()}
-        #             else:
-        #                 Participant1=''
-                    
-        #             try:
-        #                 if Participant1['Name']:
-        #                  if Participant1['Name']!=None:
-        #                     games.append({
-        #                     'Sport':response.xpath('//h1/text()').get(),
-        #                     'League':league,
-        #                     'Date':date.xpath(".//text()").get(),
-        #                     'Time':card.xpath(".//span[@data-automation-id='competition-event-card-time']/text()").get(),
-        #                     'Participant1':Participant1,
-        #                     'Participant2':Participant2
-        #                 })
-        #             except:
-        #                 None
-        #         else:
-        #             continue
-
         for date in response.xpath("//div[starts-with(@class, 'groupTitleContainerMobile')]"):
             for card in date.xpath(".//following-sibling::ul//li[starts-with(@class, 'cardOuterItem')]"):
                 participant=1
@@ -170,10 +132,10 @@ class SportsbetSpider(scrapy.Spider):
                 else:
                     continue        
 
-        #Might not even need to .sort
+        ## Might not even need to .sort
         games.sort(key=self.sort_league)
 
-        ## Seperate sport into leagues
+        ## Seperate into leagues
         league_seperate={}
         for game in games:
             if game['League'] in league_seperate:
@@ -187,9 +149,8 @@ class SportsbetSpider(scrapy.Spider):
 
         #print(league_seperate)
 
-        ##  Send bets for compare
+        ##  Send league bets for compare
         for league in league_seperate:
-            ## print(league_seperate(f'{league}'))
             if league=='NBA':   ## Basketball - US
                 yield response.follow(url='https://www.msn.com/en-au/sport/nba/ladder/sp-s-l', callback=self.parse_Basketball_US, meta={'allbets':league_seperate[f'{league}']})
             elif league=='Australian NBL':  ## Basketball - Aus/Other
@@ -226,9 +187,9 @@ class SportsbetSpider(scrapy.Spider):
             #     yield response.follow(url='', callback=self.parse_, meta={'allbets':league_seperate[f'{league}']})
             
             else:
-                yield (print('** League not inserted: ',  league_seperate[f'{league}'][0]['Sport'] + ', ', league))        
+                yield (print('** League not inserted: ',  league_seperate[f'{league}'][0]['Sport'] + ', ', league))
     
-    ## Copy def stock
+    ## Copy def parse stock
 
     # def parse_(self, response):
     #     ladder=[]
@@ -375,7 +336,6 @@ class SportsbetSpider(scrapy.Spider):
     def parse_Basketball_Chilean_LNB(self, response):
         ladder=[]
 
-        # Check if xPath /tbody work
         for team in response.xpath("(//table/tbody)[1]/tr[@class='sp-livetable__tableRow spm-dataRow']/td[3]/div/div/div/a/text()").getall():
             if team =='Quilicura':
                 ladder.append('CD Quilicura Basket')
@@ -406,6 +366,8 @@ class SportsbetSpider(scrapy.Spider):
         group_ladder=response.request.meta['group_ladder']
         ladder=[]
         loop_count=response.request.meta['loop_count']
+        
+        # Collect names in current district
         for team in response.xpath('//tbody/tr/'):
             if team.xpath('.//th/div/span/text()').get() =='':
                 ladder.append({'Name': '', 'W': team.xpath('.//td[3]/text()').get()})
@@ -414,6 +376,7 @@ class SportsbetSpider(scrapy.Spider):
         
         group_ladder.append(ladder)
 
+        # Repeat with next district
         while loop_count<=4:
             if loop_count==1:
                 yield response.follow(url='https://nbl1.com.au/stats/ladder/south/men', callback=self.parse_Basketball_NBL1, meta={'allbets': response.request.meta['allbets'], 'group_ladder': group_ladder, 'loop_count': loop_count+1})
@@ -422,10 +385,6 @@ class SportsbetSpider(scrapy.Spider):
             if loop_count==3:
                 yield response.follow(url='https://nbl1.com.au/stats/ladder/west/men', callback=self.parse_Basketball_NBL1, meta={'allbets': response.request.meta['allbets'], 'group_ladder': group_ladder, 'loop_count': loop_count+1})
             if loop_count==4:
-                print()
-                #print(group_ladder)
-                #print(response.request.meta['allbets'])
-                print()
                 self.Basketball_NBL1_evaluate(self, response, group_ladder)
     
     # For def parse_Basketball_NBL1 only:
@@ -433,21 +392,13 @@ class SportsbetSpider(scrapy.Spider):
         print()
         print(ladder)
 
+        # Order all districts in terms of wins
         sorted_ladder=[]
         for team in sorted(ladder, key=lambda x: x['W'], reverse=True):
             sorted_ladder.append(team['Name'])
 
         response.request.meta['ladder']=sorted_ladder
         yield self.compare(response, 9, 47)
-        
-        # for game in response.request.meta['allbets']:
-        #     for district in ladder:
-        #         if district.index(game['Participant1']['Name'])<2:
-        #             if district.index(game['Participant2']['Name'])>11:
-        #                 yield game
-        #         elif district.index(game['Participant1']['Name'])>11:
-        #             if district.index(game['Participant2']['Name'])<2:
-        #                 yield game
 
     ## Basketball - Aus/Other
     def parse_Basketball_Argentina_La_Liga(self, response):
@@ -489,19 +440,12 @@ class SportsbetSpider(scrapy.Spider):
 
         response.request.meta['ladder']=ladder
         self.compare(response, 5, 22)
-        
-        # for game in response.request.meta['allbets']:
-        #     if ladder.index(game['Participant1']['Name'])<5:
-        #         if ladder.index(game['Participant2']['Name'])>22:
-        #             yield game
-        #     elif ladder.index(game['Participant1']['Name'])>22:
-        #         if ladder.index(game['Participant2']['Name'])<5:
-        #             yield game
 
     ## American Football
     def parse_American_Football_NFL(self, response):
         ladder=[]
 
+        # Future note
         print('** Starts 10/09/21 American Footbal NFL')
 
         for team in response.xpath("//div[@class='d3-o-club-fullname']").getall():
@@ -510,14 +454,6 @@ class SportsbetSpider(scrapy.Spider):
         
         response.request.meta['ladder']=ladder
         yield self.compare(response, 9, 22)
-
-        # for game in response.request.meta['allbets']:
-        #     if ladder.index(game['Participant1']['Name'])<9:
-        #         if ladder.index(game['Participant2']['Name'])>22:
-        #             yield game
-        #     elif ladder.index(game['Participant1']['Name'])>22:
-        #         if ladder.index(game['Participant2']['Name'])<9:
-        #             yield game
 
     ## Australian Rules
     def parse_Australian_Rules_AFL(self, response):
@@ -548,7 +484,6 @@ class SportsbetSpider(scrapy.Spider):
         ## Found xpath to have changed once
         ## XPath changed again and structure of ladder bounced from acronyms to full name and back under ladder tab
         
-        #print(response.body)
         for competitor in response.xpath("//tr[position()>1]/td[3]/child::node()[@class='b_promtxt']"):
             team=competitor.xpath("normalize-space(.//text())").get()
             if team == ('SGI' or 'St. George Illawarra Dragons'):
@@ -588,49 +523,32 @@ class SportsbetSpider(scrapy.Spider):
             else:
                 ladder.append(team)
 
-        #print(ladder)
-
         response.request.meta['ladder']=ladder
         yield self.compare(response, 3, 12)   
 
-        # for game in response.request.meta['allbets']:
-        #     if ladder.index(game['Participant1']['Name'])<3:
-        #         if ladder.index(game['Participant2']['Name'])>12:
-        #             yield ('Bet'), game
-        #     elif ladder.index(game['Participant1']['Name'])>12:
-        #         if ladder.index(game['Participant2']['Name'])<3:
-        #             yield ('Bet'), game
-
     ## Basketball - US
     def parse_Basketball_US(self, response):
-        ## Good to go I believe
         ladder=[]
 
         for team in response.xpath("//tbody/tr/td/a/text()").getall():
                 ladder.append(team)
 
+        # Test to have to run backup ladder
         try:
             ladder[0]
         except:
             yield response.follow(url='https://www.msn.com/en-au/sport/nba/teams', callback=self.parse_Basketball_US_backup, meta={'allbets':response.request.meta['allbets']})
         else:
             print(ladder)
-
             response.request.meta['ladder']=ladder
             yield self.compare(response, 5, 23)
 
-        # for game in response.request.meta['allbets']:
-        #     if ladder.index(game['Participant1']['Name'])<5:
-        #         if ladder.index(game['Participant2']['Name'])>23:
-        #             yield game
-        #     elif ladder.index(game['Participant1']['Name'])>23:
-        #         if ladder.index(game['Participant2']['Name'])<5:
-        #             yield game
-
+    ## Only for def parse_Basketball_US
     def parse_Basketball_US_backup(self, response):
         ladder={}
         list=response.xpath("//tr/td[2]/div/div/text()").getall()
 
+        ## Re-write once started again
         for info in list:
             info=info.replace('\n', '')
             if info.replace(' ', '').isalpha():
@@ -684,27 +602,22 @@ class SportsbetSpider(scrapy.Spider):
             elif team.xpath(".//text()").get() == 'Cairns':
                 ladder.append('Cairns Taipans')
 
+        # Are 3 ladders being read still? (When season starts)
+        print(ladder)
+
         response.request.meta['ladder']=ladder
         yield self.compare(response, 5, 23)
-
-        # for game in response.request.meta['allbets']:
-        #     if ladder.index(game['Participant1']['Name'])<5:
-        #         if ladder.index(game['Participant2']['Name'])>23:
-        #             yield game
-        #     elif ladder.index(game['Participant1']['Name'])>23:
-        #         if ladder.index(game['Participant2']['Name'])<5:
-        #             yield game
 
     ## Calculative
     def sort_league(self, games):
         return games['League']
 
     def compare(self, response, high, low):
-
         print('### Entering: ', response.request.meta['allbets'][0]['Sport']+',', response.request.meta['allbets'][0]['League'])
 
         #print (response.request.meta['allbets'])
         #print (response.request.meta['ladder'])
+
         try:
             response.request.meta['ladder'][0]
         except:
@@ -718,6 +631,5 @@ class SportsbetSpider(scrapy.Spider):
                     if response.request.meta['ladder'].index(game['Participant2']['Name'])<high:
                         print(game)
 
-        # print(response.request.meta['League'], 'unaffirmed')
-        
+        ## Will find a suitable way to return/yield a key/list
         return None
