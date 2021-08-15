@@ -12,7 +12,9 @@ class SportsbetSpider(scrapy.Spider):
     'nbl1.com.au', # Basketball - Aus/Other [Australian NBL1]
     'www.scorespro.com', # Basketball [Chilean LNB, Big3 3x3(US)], Australian Rules [SANFL]
     'www.asia-basket.com', # Basketball [Chinese NBL]
-    'gameday.bigv.com.au' # Basketball [Aus Big V]
+    'gameday.bigv.com.au', # Basketball [Aus Big V]
+    'tipsscore.com', # Basketball [Dominican Republic]
+    'www.latinbasket.com' # Basketball [Uruguayan Metro League, Brazilian Campeonato Paulista]
     ]
     start_urls = ['https://www.sportsbet.com.au/betting/sports-az']
 
@@ -93,6 +95,8 @@ class SportsbetSpider(scrapy.Spider):
             'The Basketball Tournament': 'Basketball - US', # Not a league
             'AFL Team Futures Multis': 'Australian Rules', # Not a league
             'Australian Big V Women': 'Basketball - Aus/Other', # Only standing can find needs selenium
+            'NRL Team Futures Multis': 'Rugby League', # Not a league
+            'Euro Championship for Small Countries': 'Basketball - Aus/Other' # Not a league
             })
 
         ## Collect open bets
@@ -100,7 +104,7 @@ class SportsbetSpider(scrapy.Spider):
             for card in date.xpath(".//following-sibling::ul//li[starts-with(@class, 'cardOuterItem')]"):
                 participant=1
                 league=card.xpath(".//span[@data-automation-id='competition-name']/text()").get()
-                if league not in disallowed_leagues:
+                if league and league not in disallowed_leagues:
                     if card.xpath(".//div[@data-automation-id='multi-market-coupon-event']"):
                         Participant1={'Name':card.xpath(".//div[@data-automation-id='participant-one']/text()").get(), 'Price': card.xpath(".//span[@data-automation-id'price-text'][1]/text()").get()}
                         Participant2={'Name':card.xpath(".//div[@data-automation-id='participant-two']/text()").get(), 'Price': card.xpath(".//span[@data-automation-id'price-text'][2]/text()").get()}
@@ -118,15 +122,15 @@ class SportsbetSpider(scrapy.Spider):
                     
                     try:
                         if Participant1['Name']:
-                         if Participant1['Name']!=None:
-                            games.append({
-                            'Sport':response.xpath('//h1/text()').get(),
-                            'League':league,
-                            'Date':date.xpath(".//text()").get(),
-                            'Time':card.xpath(".//span[@data-automation-id='competition-event-card-time']/text()").get(),
-                            'Participant1':Participant1,
-                            'Participant2':Participant2
-                        })
+                            if Participant1['Name']!=None:
+                                games.append({
+                                'Sport':response.xpath('//h1/text()').get(),
+                                'League':league,
+                                'Date':date.xpath(".//text()").get(),
+                                'Time':card.xpath(".//span[@data-automation-id='competition-event-card-time']/text()").get(),
+                                'Participant1':Participant1,
+                                'Participant2':Participant2
+                                })
                     except:
                         None
                 else:
@@ -180,6 +184,14 @@ class SportsbetSpider(scrapy.Spider):
                 yield response.follow(url='https://www.scorespro.com/aussie-rules/australia/sanfl/ladder/', callback=self.parse_Australian_SANFL, meta={'allbets':league_seperate[f'{league}']})
             elif league=='Australian Big V':
                 yield response.follow(url='https://gameday.bigv.com.au/#ladder', callback=self.parse_Australian_Big_V, meta={'allbets':league_seperate[f'{league}']})
+            elif league=='Dominican Rep LNB':
+                yield response.follow(url='https://tipsscore.com/en/basketball/league/dominican-republic-lnb', callback=self.parse_Basketball_Dominican_Republic, meta={'allbets':league_seperate[f'{league}']})
+            elif league=='Uruguayan Metro League':   ## Basketball - Aus/Other
+                yield response.follow(url='https://www.latinbasket.com/Uruguay/basketball-Metropolitan-League.aspx', callback=self.parse_Basketball_Uruguayan, meta={'allbets':league_seperate[f'{league}']})
+            elif league=='NBA Summer League Matches':   ## Basketball -US
+                yield response.follow(url='https://www.scorespro.com/basketball/usa/nba-summer-league/standings/', callback=self.parse_Basketball_NBA_Summer_League, meta={'allbets':league_seperate[f'{league}']})
+            elif league=='Brazilian Campeonato Paulista':   ## 
+                yield response.follow(url='https://www.latinbasket.com/Brazil/basketball-League-Paulista.asp', callback=self.parse_Basketball_Brazilian_Campeonato_Paulista, meta={'allbets':league_seperate[f'{league}']})
 
             ## Copy elif stock
 
@@ -194,8 +206,8 @@ class SportsbetSpider(scrapy.Spider):
     # def parse_(self, response):
     #     ladder=[]
 
-    #     for team in response.xpath(""):
-    #         if team.xpath('').get() =='':
+    #     for team in response.xpath("").getall():
+    #         if team == '':
     #             ladder.append('')
     #         else:
     #              ladder.append(team)
@@ -203,6 +215,86 @@ class SportsbetSpider(scrapy.Spider):
     #     print(ladder)
     #     response.request.meta['ladder']=ladder
     #     self.compare(response, , )
+
+    # Basketball - Aus/Other
+    def parse_Basketball_Brazilian_Campeonato_Paulista(self, response):
+        ladder=[]
+
+        for team in response.xpath("//div[@class='standingsContent']/div/a/text()").getall():
+            if team == 'Pinheiros':
+                ladder.append('EC Pinheiros')
+            else:
+                 ladder.append(team)
+
+        print(ladder)
+        response.request.meta['ladder']=ladder
+        self.compare(response, 1, 8)
+
+    # Basketball - US
+    def parse_Basketball_NBA_Summer_League(self, response):
+        ladder=[]
+
+        for team in response.xpath("((//table/tbody)[1]/tr/td/div/div/div/a/text())[position()<31]").getall():
+            if team == 'Los Angeles Clippers':
+                ladder.append('LA Clippers')
+            elif team == 'Portland Trailblazers':
+                ladder.append('Portland Trail Blazers')
+            else:
+                 ladder.append(team)
+
+        response.request.meta['ladder']=ladder
+        self.compare(response, 4, 26)
+
+    # Basketball - Aus/Other
+    def parse_Basketball_Uruguayan(self, response):
+        ladder=[]
+
+        for team in response.xpath("//div[@class='standingLink']/a/text()").getall():
+            if team == 'Tabare':
+                ladder.append('Club Atletico Tabare')
+            elif team == 'L.Borges':
+                ladder.append('Larre Borges')
+            elif team == 'U.Atletica':
+                ladder.append('Union Atletica')
+            else:
+                 ladder.append(team)
+
+        response.request.meta['ladder']=ladder
+        self.compare(response, 2, 9)
+
+    # Basketball - Aus/Other
+    def parse_Basketball_Dominican_Republic(self, response):
+        ladder=[]
+
+        ## Normalize space is getting rid of all text
+        for team in response.xpath("//table[@class='table table-hover table-sm text-default-emp']/tbody/tr/td/a/text()").getall():
+            
+            # normalize-space returns empty string in this case, look into at further track
+            #team=competitor.xpath("normalize-space").get()
+            team=team.replace(' ', '').replace('\n', '')
+
+            if team=='':
+                continue
+            elif team =='Huracanes del Atlántico':
+                ladder.append('Huracanes del Atlantico')
+            elif team =='TitanesdelDistritoNacional':
+                ladder.append('Titanes del Licey')
+            elif team =='RealesDeLaVega':
+                ladder.append('Reales de La Vega')
+            elif team =='LeonesDeSantoDomingo':
+                ladder.append('Leones de Santo Domingo')
+            elif team =='IndiosdeSanFrancisco':
+                ladder.append('Indios de San Francisco')
+            elif team =='SolesdeSantoDomingoEste':
+                ladder.append('Soles de Santo Domingo Este')
+            #if team.xpath("normalize-space(.//text())").get() =='Huracanes del Atlántico':
+            #    ladder.append('Huracanes del Atlantico')
+            else:
+                 ladder.append(team)
+
+        #print(ladder)
+        response.request.meta['ladder']=ladder
+        self.compare(response, 1, 6)
 
     # Basketball - Aus/Other
     def parse_Australian_Big_V(self, response):
@@ -228,7 +320,7 @@ class SportsbetSpider(scrapy.Spider):
             elif team.xpath("normalize-space(.//text())").get()=='Blackburn':
                 ladder.append('Blackburn Vikings')
             else:
-                 ladder.append(team)
+                 ladder.append(team.xpath("normalize-space(.//text())").get())
 
         response.request.meta['ladder']=ladder
         self.compare(response, 1, 9)
@@ -355,6 +447,8 @@ class SportsbetSpider(scrapy.Spider):
                 ladder.append('C. D. Las Animas')
             elif team=='CD Puerto Varas':
                 ladder.append('CD Atletico PTO. Varas')
+            elif team=='Puente Alto':
+                ladder.append('Mun. Puente Alto')
             else:
                  ladder.append(team)
         

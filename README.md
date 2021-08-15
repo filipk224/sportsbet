@@ -11,6 +11,7 @@ Upcoming work:
 
 Long term ideas:
  - Self judging acceptable parameters
+ - Calculate previous season statistic's into beggining season's
 
 Notes:
  - Requires Scrapy
