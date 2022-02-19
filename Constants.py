@@ -1,4 +1,5 @@
 year_for_link=2022
+legal_days_away=7
 
 allowedSport=(
             'Australian Rules', 
@@ -14,11 +15,12 @@ allowedSport=(
             'Rugby Union',
             'Volleyball',
             'Handball',
-            'Cricket'
+            'Cricket',
+            'American Football',
+            'Netball',
             )
 
 disallowedSport=({
-            'American Football': 'Season start September',
             'Boxing': 'Not-team',
             'Chess': 'Non-team',
             'Cycling': 'Non-team',
@@ -56,6 +58,9 @@ disallowedSport=({
             'Baseball': 'Low Scoring',
             'Cross Country': 'Non-team',
             'Ice Hockey - Other': 'Low Scoring',
+            'Ski Jumping': 'Non-team',
+            'Snowboarding': 'Non-team',
+            'Curling': 'Non-team',
             })
 
 disallowed_leagues = ({
@@ -81,4 +86,12 @@ disallowed_leagues = ({
             'FIBA Europe Cup': "Basketball - Aus/Other",  # Not a league
             'Lithuanian Cup': "Basketball - Aus/Other",  # Not a league
             'New Zealand NPC': "Rugby Union", # Found some teams play less through the league, not accurate
+            'Slovenian Cup': "Basketball", # Not a league
+            'Champions League Women': "Volleyball", # Not a league
+            'Polish Cup Men': "Volleyball", # Not a league
+            'Russian Cup': "Basketball", # Not a league
+            'Turkish Federation Cup': "Basketball", # Not a league
+            'Croatian Cup': "Basketball", # Not a league
+            'Italian Cup Basketball': "Basketball", # Not a league
+            'French Cup Basketball': "Basketball", # Not a league
         })
