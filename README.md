@@ -1,19 +1,15 @@
-# sports_betting
+# sportsbet
  
-A personal project, going through constant refinement
+A personal project going through constant refinement
 
-Using my mentality on sports, I have hand picked qualifying attributes I don't wish to disclose. You are free to look through the code
+Using my mentality on sports, I have hand picked qualifying attributes. You are free to look through the code
 
-Upcoming work:
- - Tweak errors on alternate slips
- - Inclusion of new teams respective to leagues
- - Addition of leagues as they begin
-
-Long term ideas:
+Work to come:
  - Self judging acceptable parameters
- - Calculate previous season statistic's into beggining season's
- - Tkinter window for neat output
+ - Calculate previous season statistic's into new season's
+ - Neat output
  - E-mail at sufficient frequency
+ - Methods
 
 Notes:
  - Requires Scrapy
